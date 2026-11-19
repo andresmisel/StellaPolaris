@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .font-brand-script {
+    font-family: 'Great Vibes', cursive;
+  }
+  .font-brand-serif {
+    font-family: 'Cinzel Decorative', 'Playfair Display', serif;
+  }
+  .font-serif {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+  .font-sans {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+}
+
+/* Custom scrollbar for holiday elegance */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #180509;
+}
+::-webkit-scrollbar-thumb {
+  background: #801C2E;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #E25822;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 0.9; transform: scale(1.1); }
+}
+
+.animate-twinkle {
+  animation: twinkle 4s ease-in-out infinite;
+}
+
+@keyframes subtle-glow {
+  0%, 100% { box-shadow: 0 0 25px rgba(226, 88, 34, 0.25); }
+  50% { box-shadow: 0 0 45px rgba(241, 110, 40, 0.45); }
+}
+
+.glow-orange {
+  animation: subtle-glow 3.5s ease-in-out infinite;
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 12s linear infinite;
+}

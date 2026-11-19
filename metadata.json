@@ -1,0 +1,6 @@
+{
+  "name": "Stella Polaris — Ponche Crema Artesanal",
+  "description": "Edición limitada y exclusiva de 50 botellas numeradas de Stella Polaris 2026. Autenticación, ritual de degustación, muro de deseos, juego de sobremesa y archivo de ediciones.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
