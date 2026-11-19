@@ -1,0 +1,298 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (Default-Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Hardened Primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerified() && (
+        request.auth.token.email == 'andresmisel@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // 3. Entity Validation Blueprints
+    function isValidSettings(data) {
+      return data.keys().hasAll([
+        'playlistUrl', 'editionYear', 'totalBottles', 'bottleColor',
+        'heroKicker', 'heroSubtitle', 'heroDescription',
+        'storyDescription', 'storyQuote', 'wishesDescription', 'footerDescription'
+      ]) &&
+      data.keys().hasOnly([
+        'videoUrl', 'playlistUrl', 'editionYear', 'totalBottles', 'bottleColor',
+        'heroKicker', 'heroSubtitle', 'heroDescription',
+        'storyDescription', 'storyQuote', 'wishesDescription', 'footerDescription',
+        'heroBottleUrl', 'ritualGlassUrl', 'storyKitchenUrl', 'secondLifeLanternUrl', 'updatedAt'
+      ]) &&
+      data.playlistUrl is string && data.playlistUrl.size() <= 500 &&
+      (!data.keys().hasAny(['videoUrl']) || (data.videoUrl is string && data.videoUrl.size() <= 500)) &&
+      data.editionYear is int && data.editionYear >= 2000 && data.editionYear <= 2100 &&
+      data.totalBottles is int && data.totalBottles >= 1 && data.totalBottles <= 500 &&
+      data.bottleColor is string && data.bottleColor.size() <= 200 &&
+      data.heroKicker is string && data.heroKicker.size() <= 200 &&
+      data.heroSubtitle is string && data.heroSubtitle.size() <= 250 &&
+      data.heroDescription is string && data.heroDescription.size() <= 2000 &&
+      data.storyDescription is string && data.storyDescription.size() <= 1500 &&
+      data.storyQuote is string && data.storyQuote.size() <= 2000 &&
+      data.wishesDescription is string && data.wishesDescription.size() <= 1500 &&
+      data.footerDescription is string && data.footerDescription.size() <= 1500 &&
+      (!data.keys().hasAny(['heroBottleUrl']) || (data.heroBottleUrl is string && data.heroBottleUrl.size() <= 500)) &&
+      (!data.keys().hasAny(['ritualGlassUrl']) || (data.ritualGlassUrl is string && data.ritualGlassUrl.size() <= 500)) &&
+      (!data.keys().hasAny(['storyKitchenUrl']) || (data.storyKitchenUrl is string && data.storyKitchenUrl.size() <= 500)) &&
+      (!data.keys().hasAny(['secondLifeLanternUrl']) || (data.secondLifeLanternUrl is string && data.secondLifeLanternUrl.size() <= 500)) &&
+      (!data.keys().hasAny(['updatedAt']) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    function isValidSiteImage(data) {
+      return data.keys().hasAll(['key', 'dataUrl']) &&
+      data.keys().hasOnly(['key', 'dataUrl', 'updatedAt']) &&
+      data.key in ['heroBottle', 'ritualGlass', 'storyKitchen', 'pastEditionBottle', 'secondLifeLantern'] &&
+      data.dataUrl is string && data.dataUrl.size() >= 1 && data.dataUrl.size() <= 750000 &&
+      (!data.keys().hasAny(['updatedAt']) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    function isValidRitual(data) {
+      return data.keys().hasAll([
+        'sectionTitle', 'sectionDescription', 'glassCardTitle',
+        'glassCardSubtitle', 'temperatureBadge', 'steps'
+      ]) &&
+      data.keys().hasOnly([
+        'sectionTitle', 'sectionDescription', 'glassCardTitle',
+        'glassCardSubtitle', 'temperatureBadge', 'pairings', 'steps', 'updatedAt'
+      ]) &&
+      data.sectionTitle is string && data.sectionTitle.size() <= 200 &&
+      data.sectionDescription is string && data.sectionDescription.size() <= 1500 &&
+      data.glassCardTitle is string && data.glassCardTitle.size() <= 200 &&
+      data.glassCardSubtitle is string && data.glassCardSubtitle.size() <= 300 &&
+      data.temperatureBadge is string && data.temperatureBadge.size() <= 50 &&
+      (!data.keys().hasAny(['pairings']) || (data.pairings is list && data.pairings.size() <= 20 && (data.pairings.size() == 0 || data.pairings[0] is string))) &&
+      data.steps is list && data.steps.size() <= 30 &&
+      (data.steps.size() == 0 || data.steps[0] is map) &&
+      (!data.keys().hasAny(['updatedAt']) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    function isValidPastEdition(data) {
+      return data.keys().hasAll([
+        'year', 'bottleColor', 'quantityMade', 'quantityLabel',
+        'status', 'description', 'waxSealColor', 'keyFeatures', 'archiveNote'
+      ]) &&
+      data.keys().hasOnly([
+        'year', 'bottleColor', 'quantityMade', 'quantityLabel',
+        'status', 'description', 'tastingNotes', 'imageSrc',
+        'waxSealColor', 'keyFeatures', 'archiveNote', 'updatedAt'
+      ]) &&
+      data.year is int && data.year >= 2000 && data.year <= 2100 &&
+      data.bottleColor is string && data.bottleColor.size() <= 200 &&
+      data.quantityMade is int && data.quantityMade >= 1 && data.quantityMade <= 10000 &&
+      data.quantityLabel is string && data.quantityLabel.size() <= 200 &&
+      data.status is string && data.status.size() <= 150 &&
+      data.description is string && data.description.size() <= 2000 &&
+      (!data.keys().hasAny(['tastingNotes']) || (data.tastingNotes is string && data.tastingNotes.size() <= 1500)) &&
+      (!data.keys().hasAny(['imageSrc']) || (data.imageSrc is string && data.imageSrc.size() <= 500)) &&
+      data.waxSealColor is string && data.waxSealColor.size() <= 150 &&
+      data.keyFeatures is list && data.keyFeatures.size() <= 20 &&
+      (data.keyFeatures.size() == 0 || data.keyFeatures[0] is string) &&
+      data.archiveNote is string && data.archiveNote.size() <= 2000 &&
+      (!data.keys().hasAny(['updatedAt']) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    function isValidSecondLife(data) {
+      return data.keys().hasAll([
+        'kicker', 'sectionTitle', 'sectionDescription',
+        'guideKicker', 'guideTitle', 'steps', 'tipTitle', 'tipText'
+      ]) &&
+      data.keys().hasOnly([
+        'kicker', 'sectionTitle', 'sectionDescription',
+        'guideKicker', 'guideTitle', 'steps', 'tipTitle', 'tipText', 'updatedAt'
+      ]) &&
+      data.kicker is string && data.kicker.size() <= 200 &&
+      data.sectionTitle is string && data.sectionTitle.size() <= 200 &&
+      data.sectionDescription is string && data.sectionDescription.size() <= 1500 &&
+      data.guideKicker is string && data.guideKicker.size() <= 200 &&
+      data.guideTitle is string && data.guideTitle.size() <= 200 &&
+      data.steps is list && data.steps.size() <= 30 &&
+      (data.steps.size() == 0 || data.steps[0] is map) &&
+      data.tipTitle is string && data.tipTitle.size() <= 200 &&
+      data.tipText is string && data.tipText.size() <= 1000 &&
+      (!data.keys().hasAny(['updatedAt']) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    function isValidBottle(data) {
+      return data.keys().hasAll(['number', 'formattedNumber', 'code', 'authToken', 'claimed']) &&
+      data.keys().hasOnly([
+        'number', 'formattedNumber', 'code', 'authToken', 'tokenRegenerated',
+        'claimed', 'ownerName', 'claimDate', 'dedication', 'location'
+      ]) &&
+      data.number is int && data.number >= 1 && data.number <= 500 &&
+      data.formattedNumber is string && data.formattedNumber.size() <= 20 &&
+      data.code is string && data.code.size() <= 30 &&
+      data.authToken is string && data.authToken.size() <= 64 &&
+      (!data.keys().hasAny(['tokenRegenerated']) || data.tokenRegenerated is bool) &&
+      data.claimed is bool &&
+      (!data.keys().hasAny(['ownerName']) || (data.ownerName is string && data.ownerName.size() <= 160)) &&
+      (!data.keys().hasAny(['claimDate']) || (data.claimDate is string && data.claimDate.size() <= 100)) &&
+      (!data.keys().hasAny(['dedication']) || (data.dedication is string && data.dedication.size() <= 400)) &&
+      (!data.keys().hasAny(['location']) || (data.location is string && data.location.size() <= 160));
+    }
+
+    function isValidWish(data) {
+      return data.keys().hasAll(['id', 'author', 'location', 'message', 'category', 'createdAt', 'approved', 'likes']) &&
+      data.keys().hasOnly(['id', 'author', 'bottleNumber', 'location', 'message', 'category', 'createdAt', 'approved', 'pinned', 'likes']) &&
+      isValidId(data.id) &&
+      data.author is string && data.author.size() >= 1 && data.author.size() <= 120 &&
+      (!data.keys().hasAny(['bottleNumber']) || (data.bottleNumber is int && data.bottleNumber >= 1 && data.bottleNumber <= 500)) &&
+      data.location is string && data.location.size() <= 120 &&
+      data.message is string && data.message.size() >= 1 && data.message.size() <= 1000 &&
+      data.category is string && data.category.size() <= 60 &&
+      data.createdAt is string && data.createdAt.size() <= 80 &&
+      data.approved is bool &&
+      (!data.keys().hasAny(['pinned']) || data.pinned is bool) &&
+      data.likes is int && data.likes >= 0 && data.likes <= 1000000;
+    }
+
+    function isValidGameQuestion(data) {
+      return data.keys().hasAll(['id', 'type', 'title', 'prompt', 'tag']) &&
+      data.keys().hasOnly(['id', 'type', 'title', 'prompt', 'options', 'correctAnswer', 'explanation', 'tag']) &&
+      isValidId(data.id) &&
+      data.type in ['likely', 'trivia', 'memory', 'toast'] &&
+      data.title is string && data.title.size() <= 200 &&
+      data.prompt is string && data.prompt.size() >= 1 && data.prompt.size() <= 800 &&
+      (!data.keys().hasAny(['options']) || (data.options is list && data.options.size() <= 10 && (data.options.size() == 0 || data.options[0] is string))) &&
+      (!data.keys().hasAny(['correctAnswer']) || (data.correctAnswer is int && data.correctAnswer >= 0 && data.correctAnswer <= 9)) &&
+      (!data.keys().hasAny(['explanation']) || (data.explanation is string && data.explanation.size() <= 800)) &&
+      data.tag is string && data.tag.size() <= 80;
+    }
+
+    function isValidAdminUser(data) {
+      return data.keys().hasAll(['email', 'role']) &&
+      data.keys().hasOnly(['email', 'role']) &&
+      data.email is string && data.email.size() <= 200 &&
+      data.role == 'admin';
+    }
+
+    // 4. Collection Rules
+    match /test/{docId} {
+      allow get: if docId == 'connection';
+    }
+
+    match /site_settings/{docId} {
+      allow get: if isValidId(docId);
+      allow list: if true;
+      allow create: if isAdmin() && isValidId(docId) && isValidSettings(incoming());
+      allow update: if isAdmin() && isValidId(docId) && isValidSettings(incoming());
+      allow delete: if isAdmin() && isValidId(docId);
+    }
+
+    match /site_images/{imageId} {
+      allow get: if isValidId(imageId);
+      allow list: if true;
+      allow create: if isAdmin() && isValidId(imageId) && isValidSiteImage(incoming()) && incoming().key == imageId;
+      allow update: if isAdmin() && isValidId(imageId) && isValidSiteImage(incoming()) && incoming().key == imageId;
+      allow delete: if isAdmin() && isValidId(imageId);
+    }
+
+    match /site_ritual/{docId} {
+      allow get: if isValidId(docId);
+      allow list: if true;
+      allow create: if isAdmin() && isValidId(docId) && isValidRitual(incoming());
+      allow update: if isAdmin() && isValidId(docId) && isValidRitual(incoming());
+      allow delete: if isAdmin() && isValidId(docId);
+    }
+
+    match /site_past_edition/{docId} {
+      allow get: if isValidId(docId);
+      allow list: if true;
+      allow create: if isAdmin() && isValidId(docId) && isValidPastEdition(incoming());
+      allow update: if isAdmin() && isValidId(docId) && isValidPastEdition(incoming());
+      allow delete: if isAdmin() && isValidId(docId);
+    }
+
+    match /site_second_life/{docId} {
+      allow get: if isValidId(docId);
+      allow list: if true;
+      allow create: if isAdmin() && isValidId(docId) && isValidSecondLife(incoming());
+      allow update: if isAdmin() && isValidId(docId) && isValidSecondLife(incoming());
+      allow delete: if isAdmin() && isValidId(docId);
+    }
+
+    match /bottles/{bottleId} {
+      allow get: if isValidId(bottleId);
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isValidId(bottleId) && isValidBottle(incoming());
+      allow update: if isValidId(bottleId) && isValidBottle(incoming()) && (
+        isAdmin() ||
+        (
+          incoming().diff(existing()).affectedKeys().hasOnly(['ownerName', 'location', 'dedication', 'claimDate', 'claimed']) &&
+          incoming().number == existing().number &&
+          incoming().formattedNumber == existing().formattedNumber &&
+          incoming().code == existing().code &&
+          incoming().authToken == existing().authToken &&
+          (!existing().keys().hasAny(['tokenRegenerated']) || incoming().tokenRegenerated == existing().tokenRegenerated)
+        )
+      );
+      allow delete: if isAdmin() && isValidId(bottleId);
+    }
+
+    match /wishes/{wishId} {
+      allow get: if isValidId(wishId) && (existing().approved == true || isAdmin());
+      allow list: if existing().approved == true || isAdmin();
+      allow create: if isValidId(wishId) && isValidWish(incoming()) && incoming().id == wishId && (
+        isAdmin() ||
+        (
+          incoming().approved == false &&
+          (!incoming().keys().hasAny(['pinned']) || incoming().pinned == false) &&
+          incoming().likes == 1
+        )
+      );
+      allow update: if isValidId(wishId) && isValidWish(incoming()) && (
+        isAdmin() ||
+        (
+          existing().approved == true &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['likes']) &&
+          incoming().likes == existing().likes + 1
+        )
+      );
+      allow delete: if isAdmin() && isValidId(wishId);
+    }
+
+    match /game_questions/{questionId} {
+      allow get: if isValidId(questionId);
+      allow list: if true;
+      allow create: if isAdmin() && isValidId(questionId) && isValidGameQuestion(incoming()) && incoming().id == questionId;
+      allow update: if isAdmin() && isValidId(questionId) && isValidGameQuestion(incoming()) && incoming().id == existing().id;
+      allow delete: if isAdmin() && isValidId(questionId);
+    }
+
+    match /admins/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isValidId(userId) && isValidAdminUser(incoming());
+      allow update: if isAdmin() && isValidId(userId) && isValidAdminUser(incoming());
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+  }
+}

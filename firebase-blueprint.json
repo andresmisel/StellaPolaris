@@ -1,0 +1,235 @@
+{
+  "entities": {
+    "SiteSettings": {
+      "title": "SiteSettings",
+      "description": "Global site text descriptions, edition metadata, and YouTube playlist URL for Stella Polaris.",
+      "type": "object",
+      "properties": {
+        "videoUrl": { "type": "string", "maxLength": 500 },
+        "playlistUrl": { "type": "string", "maxLength": 500 },
+        "editionYear": { "type": "integer" },
+        "totalBottles": { "type": "integer" },
+        "bottleColor": { "type": "string", "maxLength": 200 },
+        "heroKicker": { "type": "string", "maxLength": 200 },
+        "heroSubtitle": { "type": "string", "maxLength": 250 },
+        "heroDescription": { "type": "string", "maxLength": 2000 },
+        "storyDescription": { "type": "string", "maxLength": 1500 },
+        "storyQuote": { "type": "string", "maxLength": 2000 },
+        "wishesDescription": { "type": "string", "maxLength": 1500 },
+        "footerDescription": { "type": "string", "maxLength": 1500 },
+        "heroBottleUrl": { "type": "string", "maxLength": 500 },
+        "ritualGlassUrl": { "type": "string", "maxLength": 500 },
+        "storyKitchenUrl": { "type": "string", "maxLength": 500 },
+        "secondLifeLanternUrl": { "type": "string", "maxLength": 500 },
+        "updatedAt": { "type": "string", "format": "date-time", "maxLength": 64 }
+      },
+      "required": [
+        "playlistUrl",
+        "editionYear",
+        "totalBottles",
+        "bottleColor",
+        "heroKicker",
+        "heroSubtitle",
+        "heroDescription",
+        "storyDescription",
+        "storyQuote",
+        "wishesDescription",
+        "footerDescription"
+      ]
+    },
+    "SiteImage": {
+      "title": "SiteImage",
+      "description": "Individual image asset (URL or compressed JPEG data URL) for site sections.",
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "enum": ["heroBottle", "ritualGlass", "storyKitchen", "pastEditionBottle", "secondLifeLantern"],
+          "maxLength": 40
+        },
+        "dataUrl": { "type": "string", "maxLength": 750000 },
+        "updatedAt": { "type": "string", "format": "date-time", "maxLength": 64 }
+      },
+      "required": ["key", "dataUrl"]
+    },
+    "RitualConfig": {
+      "title": "RitualConfig",
+      "description": "Tasting ritual section header and ordered steps.",
+      "type": "object",
+      "properties": {
+        "sectionTitle": { "type": "string", "maxLength": 200 },
+        "sectionDescription": { "type": "string", "maxLength": 1500 },
+        "glassCardTitle": { "type": "string", "maxLength": 200 },
+        "glassCardSubtitle": { "type": "string", "maxLength": 300 },
+        "temperatureBadge": { "type": "string", "maxLength": 50 },
+        "pairings": { "type": "array" },
+        "steps": { "type": "array" },
+        "updatedAt": { "type": "string", "format": "date-time", "maxLength": 64 }
+      },
+      "required": [
+        "sectionTitle",
+        "sectionDescription",
+        "glassCardTitle",
+        "glassCardSubtitle",
+        "temperatureBadge",
+        "steps"
+      ]
+    },
+    "PastEdition": {
+      "title": "PastEdition",
+      "description": "Historical archive metadata for the previous year limited edition.",
+      "type": "object",
+      "properties": {
+        "year": { "type": "integer" },
+        "bottleColor": { "type": "string", "maxLength": 200 },
+        "quantityMade": { "type": "integer" },
+        "quantityLabel": { "type": "string", "maxLength": 200 },
+        "status": { "type": "string", "maxLength": 150 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "tastingNotes": { "type": "string", "maxLength": 1500 },
+        "imageSrc": { "type": "string", "maxLength": 500 },
+        "waxSealColor": { "type": "string", "maxLength": 150 },
+        "keyFeatures": { "type": "array" },
+        "archiveNote": { "type": "string", "maxLength": 2000 },
+        "updatedAt": { "type": "string", "format": "date-time", "maxLength": 64 }
+      },
+      "required": [
+        "year",
+        "bottleColor",
+        "quantityMade",
+        "quantityLabel",
+        "status",
+        "description",
+        "waxSealColor",
+        "keyFeatures",
+        "archiveNote"
+      ]
+    },
+    "SecondLifeConfig": {
+      "title": "SecondLifeConfig",
+      "description": "Editable section header, guide title, steps, and tip for La Segunda Vida de la Botella.",
+      "type": "object",
+      "properties": {
+        "kicker": { "type": "string", "maxLength": 200 },
+        "sectionTitle": { "type": "string", "maxLength": 200 },
+        "sectionDescription": { "type": "string", "maxLength": 1500 },
+        "guideKicker": { "type": "string", "maxLength": 200 },
+        "guideTitle": { "type": "string", "maxLength": 200 },
+        "steps": { "type": "array" },
+        "tipTitle": { "type": "string", "maxLength": 200 },
+        "tipText": { "type": "string", "maxLength": 1000 },
+        "updatedAt": { "type": "string", "format": "date-time", "maxLength": 64 }
+      },
+      "required": [
+        "kicker",
+        "sectionTitle",
+        "sectionDescription",
+        "guideKicker",
+        "guideTitle",
+        "steps",
+        "tipTitle",
+        "tipText"
+      ]
+    },
+    "Bottle": {
+      "title": "Bottle",
+      "description": "Individual numbered limited edition bottle (01 to 50) with unique verification token and certificate owner details.",
+      "type": "object",
+      "properties": {
+        "number": { "type": "integer" },
+        "formattedNumber": { "type": "string", "maxLength": 20 },
+        "code": { "type": "string", "maxLength": 30 },
+        "authToken": { "type": "string", "maxLength": 64 },
+        "tokenRegenerated": { "type": "boolean" },
+        "claimed": { "type": "boolean" },
+        "ownerName": { "type": "string", "maxLength": 160 },
+        "claimDate": { "type": "string", "maxLength": 100 },
+        "dedication": { "type": "string", "maxLength": 400 },
+        "location": { "type": "string", "maxLength": 160 }
+      },
+      "required": ["number", "formattedNumber", "code", "authToken", "claimed"]
+    },
+    "Wish": {
+      "title": "Wish",
+      "description": "Community Christmas wish post on the Muro de Deseos Navideños.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "author": { "type": "string", "maxLength": 120 },
+        "bottleNumber": { "type": "integer" },
+        "location": { "type": "string", "maxLength": 120 },
+        "message": { "type": "string", "maxLength": 1000 },
+        "category": { "type": "string", "maxLength": 60 },
+        "createdAt": { "type": "string", "maxLength": 80 },
+        "approved": { "type": "boolean" },
+        "pinned": { "type": "boolean" },
+        "likes": { "type": "integer" }
+      },
+      "required": ["id", "author", "location", "message", "category", "createdAt", "approved", "likes"]
+    },
+    "GameQuestion": {
+      "title": "GameQuestion",
+      "description": "Interactive card for the Christmas Tabletop Game.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "type": { "type": "string", "enum": ["likely", "trivia", "memory", "toast"], "maxLength": 20 },
+        "title": { "type": "string", "maxLength": 200 },
+        "prompt": { "type": "string", "maxLength": 800 },
+        "options": { "type": "array" },
+        "correctAnswer": { "type": "integer" },
+        "explanation": { "type": "string", "maxLength": 800 },
+        "tag": { "type": "string", "maxLength": 80 }
+      },
+      "required": ["id", "type", "title", "prompt", "tag"]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized Superadmin role marker document.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email", "maxLength": 200 },
+        "role": { "type": "string", "enum": ["admin"], "maxLength": 20 }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/site_settings/{docId}": {
+      "schema": { "$ref": "#/entities/SiteSettings" },
+      "description": "Stores main site text descriptions, edition year, and playlist URL."
+    },
+    "/site_images/{imageId}": {
+      "schema": { "$ref": "#/entities/SiteImage" },
+      "description": "Stores each site image (URL or compressed Data URL) in an isolated document."
+    },
+    "/site_ritual/{docId}": {
+      "schema": { "$ref": "#/entities/RitualConfig" },
+      "description": "Stores tasting ritual header and steps."
+    },
+    "/site_past_edition/{docId}": {
+      "schema": { "$ref": "#/entities/PastEdition" },
+      "description": "Stores past edition archive info."
+    },
+    "/site_second_life/{docId}": {
+      "schema": { "$ref": "#/entities/SecondLifeConfig" },
+      "description": "Stores La Segunda Vida de la Botella header, steps, and tip."
+    },
+    "/bottles/{bottleId}": {
+      "schema": { "$ref": "#/entities/Bottle" },
+      "description": "Stores the 50 numbered collector bottles (single-document public get for certificate owners, admin-only list)."
+    },
+    "/wishes/{wishId}": {
+      "schema": { "$ref": "#/entities/Wish" },
+      "description": "Stores community wishes (public reads limited to approved==true)."
+    },
+    "/game_questions/{questionId}": {
+      "schema": { "$ref": "#/entities/GameQuestion" },
+      "description": "Stores tabletop game questions."
+    },
+    "/admins/{userId}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Role lookup collection for administrators."
+    }
+  }
+}

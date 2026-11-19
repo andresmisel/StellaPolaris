@@ -277,32 +277,51 @@ export const setMyClaimedBottle = (bottleNumber: number): void => {
 };
 
 /**
- * Resizes and compresses an uploaded image file into a Data URL safe for localStorage.
+ * Resizes and compresses an uploaded image file into a Data URL safe for localStorage & Firestore (< 480KB).
  */
 export const compressImageFileToDataUrl = (file: File, maxWidth = 1100, quality = 0.82): Promise<string> => {
+  const MAX_DATA_URL_LENGTH = 480000;
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
       const img = new Image();
       img.onload = () => {
-        const scale = img.width > maxWidth ? maxWidth / img.width : 1;
-        const targetWidth = Math.round(img.width * scale);
-        const targetHeight = Math.round(img.height * scale);
+        const attempts: Array<{ width: number; quality: number }> = [
+          { width: maxWidth, quality },
+          { width: 950, quality: 0.74 },
+          { width: 800, quality: 0.66 },
+          { width: 680, quality: 0.58 },
+          { width: 540, quality: 0.5 },
+        ];
 
-        const canvas = document.createElement('canvas');
-        canvas.width = targetWidth;
-        canvas.height = targetHeight;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          resolve(reader.result as string);
-          return;
+        for (const attempt of attempts) {
+          const scale = img.width > attempt.width ? attempt.width / img.width : 1;
+          const targetWidth = Math.max(1, Math.round(img.width * scale));
+          const targetHeight = Math.max(1, Math.round(img.height * scale));
+
+          const canvas = document.createElement('canvas');
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) continue;
+
+          ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+          try {
+            const result = canvas.toDataURL('image/jpeg', attempt.quality);
+            if (result.length <= MAX_DATA_URL_LENGTH) {
+              resolve(result);
+              return;
+            }
+          } catch {
+            // Try lower resolution / quality
+          }
         }
-        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-        try {
-          resolve(canvas.toDataURL('image/jpeg', quality));
-        } catch {
-          resolve(reader.result as string);
-        }
+
+        reject(
+          new Error(
+            'La imagen es demasiado pesada para guardarse en la nube. Por favor elige una imagen más ligera o usa una URL.'
+          )
+        );
       };
       img.onerror = () => reject(new Error('No se pudo leer la imagen seleccionada.'));
       img.src = reader.result as string;

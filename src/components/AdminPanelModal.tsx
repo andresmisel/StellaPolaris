@@ -37,9 +37,14 @@ import {
   Dices,
   Heart,
   Lightbulb,
+  Cloud,
+  CloudOff,
+  CheckCircle2,
+  Loader2,
 } from 'lucide-react';
 import { sound, compressImageFileToDataUrl } from '../utils/storage';
 import { generateBottleToken, buildBottleAuthUrl } from '../utils/bottleTokens';
+import type { CloudSyncStatus } from '../App';
 
 type AdminTab = 'bottles' | 'content' | 'images' | 'ritual' | 'past' | 'game' | 'wishes' | 'secondLife';
 
@@ -49,6 +54,14 @@ interface AdminPanelModalProps {
   isAdmin: boolean;
   onLogin: (password: string) => boolean;
   onLogout: () => void;
+  isCloudAdmin: boolean;
+  cloudUserEmail: string | null;
+  cloudSyncStatus: CloudSyncStatus;
+  cloudSyncError: string | null;
+  hasLocalUnsyncedEdits: boolean;
+  onConnectCloudAdmin: () => Promise<boolean>;
+  onDisconnectCloudAdmin: () => Promise<void>;
+  onSyncAllToCloud: () => Promise<boolean>;
   bottles: Bottle[];
   onUpdateBottle: (updated: Bottle) => void;
   onPreviewBottleLink: (bottle: Bottle) => void;
@@ -75,6 +88,14 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   isAdmin,
   onLogin,
   onLogout,
+  isCloudAdmin,
+  cloudUserEmail,
+  cloudSyncStatus,
+  cloudSyncError,
+  hasLocalUnsyncedEdits,
+  onConnectCloudAdmin,
+  onDisconnectCloudAdmin,
+  onSyncAllToCloud,
   bottles,
   onUpdateBottle,
   onPreviewBottleLink,
@@ -99,6 +120,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [activeTab, setActiveTab] = useState<AdminTab>('bottles');
   const [saveToast, setSaveToast] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
 
   // Content & Media draft state
   const [draftSettings, setDraftSettings] = useState<AppSettings>(settings);
@@ -151,10 +173,13 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
   const notifySaved = (msg: string) => {
     sound.playFestiveChime();
-    setSaveToast(msg);
+    const finalMsg = isCloudAdmin
+      ? `${msg} (Guardado permanentemente en la nube)`
+      : `${msg} (Guardado local — conecta Google arriba para hacerlo permanente)`;
+    setSaveToast(finalMsg);
     setTimeout(() => {
-      setSaveToast((curr) => (curr === msg ? null : curr));
-    }, 3000);
+      setSaveToast((curr) => (curr === finalMsg ? null : curr));
+    }, 3500);
   };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
@@ -497,6 +522,114 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
           </div>
         ) : (
           <div className="p-5 sm:p-6">
+            {/* Permanent Cloud Sync Status & Google Auth Banner */}
+            {!isCloudAdmin ? (
+              <div className="mb-4 rounded-xl bg-gradient-to-r from-[#2D0A14] via-[#3A0C18] to-[#24070F] border border-[#F59E0B]/60 p-3.5 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-full bg-[#F59E0B]/15 border border-[#F59E0B]/50 flex items-center justify-center text-[#F59E0B] shrink-0 mt-0.5">
+                      <CloudOff className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-bold text-[#FDE68A]">
+                        Activar Guardado Permanente en la Nube
+                      </h4>
+                      <p className="text-[11px] text-[#F4D9C6]/80 mt-0.5 leading-relaxed">
+                        Conecta tu cuenta de Google administradora para que todas tus imágenes,
+                        textos, rituales, deseos y enlaces se guarden de forma permanente en todos
+                        los dispositivos.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={isConnectingGoogle || cloudSyncStatus === 'syncing'}
+                    onClick={async () => {
+                      sound.playGlassClink();
+                      setIsConnectingGoogle(true);
+                      const ok = await onConnectCloudAdmin();
+                      setIsConnectingGoogle(false);
+                      if (ok) {
+                        notifySaved('Cuenta conectada y datos sincronizados');
+                      }
+                    }}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-gradient-to-r from-[#E25822] to-[#D94F1C] hover:brightness-110 disabled:opacity-60 rounded-lg shadow-md transition-all shrink-0"
+                  >
+                    {isConnectingGoogle || cloudSyncStatus === 'syncing' ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Conectando y guardando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Cloud className="w-3.5 h-3.5" />
+                        <span>Conectar Google y Guardar Permanente</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                {hasLocalUnsyncedEdits && (
+                  <p className="mt-2 text-[11px] text-amber-300 font-medium">
+                    Tienes cambios recientes en este navegador listos para subirse en cuanto conectes tu cuenta.
+                  </p>
+                )}
+                {cloudSyncError && (
+                  <p className="mt-2 text-[11px] text-rose-300 bg-rose-950/70 border border-rose-500/40 rounded px-2.5 py-1.5">
+                    {cloudSyncError}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="mb-4 rounded-xl bg-emerald-950/40 border border-emerald-500/40 px-4 py-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-xs text-emerald-200">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>
+                      <strong>Guardado Permanente Activo</strong> · {cloudUserEmail}
+                    </span>
+                    {cloudSyncStatus === 'syncing' && (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-amber-300 ml-1">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Guardando...
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={cloudSyncStatus === 'syncing'}
+                      onClick={async () => {
+                        sound.playGlassClink();
+                        const ok = await onSyncAllToCloud();
+                        if (ok) {
+                          notifySaved('Todo el contenido sincronizado en la nube');
+                        }
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-semibold text-emerald-100 bg-emerald-900/60 hover:bg-emerald-800/80 border border-emerald-500/40 rounded transition-colors disabled:opacity-60"
+                    >
+                      <Cloud className="w-3 h-3" />
+                      <span>Sincronizar Todo Ahora</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.playTick();
+                        void onDisconnectCloudAdmin();
+                      }}
+                      className="px-2.5 py-1 text-[11px] text-[#F4D9C6]/70 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors"
+                    >
+                      Desconectar
+                    </button>
+                  </div>
+                </div>
+                {cloudSyncError && (
+                  <p className="mt-2 text-[11px] text-rose-300 bg-rose-950/70 border border-rose-500/40 rounded px-2.5 py-1.5">
+                    {cloudSyncError}
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Save Notification Toast */}
             {saveToast && (
               <div className="mb-4 rounded-lg bg-emerald-950/90 border border-emerald-500/60 px-4 py-2.5 text-xs text-emerald-200 font-semibold flex items-center justify-between">
