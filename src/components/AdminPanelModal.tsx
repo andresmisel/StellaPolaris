@@ -41,12 +41,23 @@ import {
   CloudOff,
   CheckCircle2,
   Loader2,
+  Code2,
+  Download,
 } from 'lucide-react';
 import { sound, compressImageFileToDataUrl } from '../utils/storage';
 import { generateBottleToken, buildBottleAuthUrl } from '../utils/bottleTokens';
 import type { CloudSyncStatus } from '../App';
 
-type AdminTab = 'bottles' | 'content' | 'images' | 'ritual' | 'past' | 'game' | 'wishes' | 'secondLife';
+type AdminTab =
+  | 'bottles'
+  | 'content'
+  | 'images'
+  | 'ritual'
+  | 'past'
+  | 'game'
+  | 'wishes'
+  | 'secondLife'
+  | 'export';
 
 interface AdminPanelModalProps {
   isOpen: boolean;
@@ -121,6 +132,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [saveToast, setSaveToast] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
+  const [copiedBackupJson, setCopiedBackupJson] = useState(false);
 
   // Content & Media draft state
   const [draftSettings, setDraftSettings] = useState<AppSettings>(settings);
@@ -655,6 +667,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   icon: Heart,
                 },
                 { id: 'secondLife' as AdminTab, label: 'Segunda Vida', icon: Lightbulb },
+                { id: 'export' as AdminTab, label: 'Código / Deploy', icon: Code2 },
               ].map((t) => {
                 const Icon = t.icon;
                 const active = activeTab === t.id;
@@ -2520,6 +2533,149 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   </button>
                 </div>
               </form>
+            )}
+
+            {/* TAB 9: EXPORT TO CODE / DEPLOY SYNC */}
+            {activeTab === 'export' && (
+              <div className="space-y-4 max-h-[460px] overflow-y-auto pr-2">
+                <div className="bg-[#24070F] border border-[#F59E0B]/50 rounded-xl p-4 sm:p-5 space-y-3">
+                  <h4 className="font-serif text-base font-bold text-[#FDE68A]">
+                    ¿Por qué los cambios locales no salen al deployar?
+                  </h4>
+                  <p className="text-xs text-[#F4D9C6]/85 leading-relaxed">
+                    Cuando editas textos o subes fotos dentro del panel Superadmin, esos cambios se
+                    guardan primero en la memoria de este navegador (<code>localStorage</code>). Al
+                    deployar, la app publicada abre en un dominio nuevo y solo muestra:
+                  </p>
+                  <ul className="text-xs text-[#F4D9C6]/85 space-y-1.5 list-disc pl-5">
+                    <li>
+                      Lo que hayas subido a la nube pulsando{' '}
+                      <strong className="text-white">«Conectar Google y Guardar Permanente»</strong>{' '}
+                      (Firebase Firestore).
+                    </li>
+                    <li>
+                      O los valores guardados directamente en el código fuente (
+                      <code>src/data/initialData.ts</code>).
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-[#24070F] border border-[#801C2E]/60 rounded-xl p-4 space-y-3">
+                    <h5 className="font-serif text-sm font-bold text-white flex items-center gap-2">
+                      <Cloud className="w-4 h-4 text-emerald-400" />
+                      <span>1. Guardar en Base de Datos (Recomendado)</span>
+                    </h5>
+                    <p className="text-xs text-[#F4D9C6]/75 leading-relaxed">
+                      Sube tus cambios actuales a Firebase para que aparezcan de inmediato en la URL
+                      deployada y en cualquier teléfono sin tener que volver a deployar.
+                    </p>
+                    <button
+                      type="button"
+                      disabled={cloudSyncStatus === 'syncing'}
+                      onClick={async () => {
+                        sound.playGlassClink();
+                        const ok = await onSyncAllToCloud();
+                        if (ok) {
+                          notifySaved('Todo el contenido sincronizado en la nube');
+                        }
+                      }}
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold text-white bg-gradient-to-r from-[#E25822] to-[#D94F1C] hover:brightness-110 disabled:opacity-60 rounded-lg transition-all"
+                    >
+                      <Cloud className="w-4 h-4" />
+                      <span>
+                        {isCloudAdmin
+                          ? 'Sincronizar Todo a la Nube Ahora'
+                          : 'Conectar Google y Subir Cambios'}
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="bg-[#24070F] border border-[#801C2E]/60 rounded-xl p-4 space-y-3">
+                    <h5 className="font-serif text-sm font-bold text-white flex items-center gap-2">
+                      <Code2 className="w-4 h-4 text-[#F59E0B]" />
+                      <span>2. Exportar para Grabar en el Código</span>
+                    </h5>
+                    <p className="text-xs text-[#F4D9C6]/75 leading-relaxed">
+                      Descarga o copia el respaldo exacto de todos tus textos, imágenes, ritual,
+                      botellas y deseos actuales para pegarlo en el chat y dejarlo fijo en el código
+                      antes de deployar.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sound.playGlassClink();
+                          const backup = JSON.stringify(
+                            {
+                              settings,
+                              ritualData,
+                              pastEdition,
+                              secondLifeData,
+                              gameQuestions,
+                              wishes,
+                              bottles,
+                            },
+                            null,
+                            2
+                          );
+                          if (navigator.clipboard) {
+                            navigator.clipboard.writeText(backup);
+                            setCopiedBackupJson(true);
+                            setTimeout(() => setCopiedBackupJson(false), 3000);
+                          }
+                        }}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#FDE68A] bg-[#801C2E]/70 hover:bg-[#801C2E] border border-[#E25822]/40 rounded-lg transition-colors"
+                      >
+                        {copiedBackupJson ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>¡Respaldo Copiado!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copiar Respaldo JSON</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sound.playFestiveChime();
+                          const backup = JSON.stringify(
+                            {
+                              settings,
+                              ritualData,
+                              pastEdition,
+                              secondLifeData,
+                              gameQuestions,
+                              wishes,
+                              bottles,
+                            },
+                            null,
+                            2
+                          );
+                          const blob = new Blob([backup], { type: 'application/json' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = 'stella-polaris-cambios.json';
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Descargar JSON</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* Modal Footer */}

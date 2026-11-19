@@ -88,7 +88,19 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false);
   const [cloudSyncStatus, setCloudSyncStatus] = useState<CloudSyncStatus>('idle');
   const [cloudSyncError, setCloudSyncError] = useState<string | null>(null);
-  const [hasLocalUnsyncedEdits, setHasLocalUnsyncedEdits] = useState(false);
+  const [hasLocalUnsyncedEdits, setHasLocalUnsyncedEdits] = useState<boolean>(() => {
+    try {
+      return (
+        JSON.stringify(getStoredSettings()) !== JSON.stringify(INITIAL_SETTINGS) ||
+        JSON.stringify(getStoredRitual()) !== JSON.stringify(INITIAL_RITUAL_DATA) ||
+        JSON.stringify(getStoredPastEdition()) !== JSON.stringify(PAST_EDITION_2025) ||
+        JSON.stringify(getStoredSecondLife()) !== JSON.stringify(INITIAL_SECOND_LIFE_DATA) ||
+        JSON.stringify(getStoredGameQuestions()) !== JSON.stringify(GAME_QUESTIONS)
+      );
+    } catch {
+      return false;
+    }
+  });
   const remoteHasDataRef = useRef<boolean | null>(null);
 
   const isCloudAdmin = Boolean(
@@ -410,11 +422,20 @@ export default function App() {
       return true;
     } catch (err) {
       setCloudSyncStatus('error');
-      setCloudSyncError(
-        err instanceof Error
-          ? err.message
-          : 'No se pudo completar el inicio de sesión con Google.'
-      );
+      const rawMsg = err instanceof Error ? err.message : '';
+      if (rawMsg.includes('popup-blocked') || rawMsg.includes('popup-closed-by-user')) {
+        setCloudSyncError(
+          'La ventana de Google fue cerrada o bloqueada por el navegador. Permite las ventanas emergentes e intenta nuevamente.'
+        );
+      } else if (rawMsg.includes('unauthorized-domain')) {
+        setCloudSyncError(
+          'Este dominio no está autorizado aún en Firebase Auth. Agrégalo en Firebase Console > Authentication > Settings > Authorized domains.'
+        );
+      } else {
+        setCloudSyncError(
+          rawMsg || 'No se pudo completar el inicio de sesión con Google.'
+        );
+      }
       return false;
     }
   };

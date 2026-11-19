@@ -1,13 +1,31 @@
 import { Bottle, Wish, GameQuestion, AppSettings, PastEdition, RitualData, SecondLifeData } from '../types';
 import { generateDefaultBottleToken } from '../utils/bottleTokens';
+import heroBottleImg from '../assets/images/stella_bottle_orange_1793994968538.jpg';
+import ritualGlassImg from '../assets/images/ritual_punch_glass_1793994969480.jpg';
+import storyKitchenImg from '../assets/images/artisan_storytelling_kitchen_1793994970709.jpg';
+import secondLifeLanternImg from '../assets/images/bottle_lantern_lights_1793994970737.jpg';
+import pastEditionBottleImg from '../assets/images/stella_bottle_past_2025_1793998085152.jpg';
 
 export const DEFAULT_SITE_IMAGES = {
-  heroBottle: '/src/assets/images/stella_bottle_orange_1793994968538.jpg',
-  ritualGlass: '/src/assets/images/ritual_punch_glass_1793994969480.jpg',
-  storyKitchen: '/src/assets/images/artisan_storytelling_kitchen_1793994970709.jpg',
-  secondLifeLantern: '/src/assets/images/bottle_lantern_lights_1793994970737.jpg',
-  pastEditionBottle: '/src/assets/images/stella_bottle_past_2025_1793998085152.jpg',
+  heroBottle: heroBottleImg,
+  ritualGlass: ritualGlassImg,
+  storyKitchen: storyKitchenImg,
+  secondLifeLantern: secondLifeLanternImg,
+  pastEditionBottle: pastEditionBottleImg,
 };
+
+const LEGACY_IMAGE_MAP: Record<string, string> = {
+  '/src/assets/images/stella_bottle_orange_1793994968538.jpg': heroBottleImg,
+  '/src/assets/images/ritual_punch_glass_1793994969480.jpg': ritualGlassImg,
+  '/src/assets/images/artisan_storytelling_kitchen_1793994970709.jpg': storyKitchenImg,
+  '/src/assets/images/bottle_lantern_lights_1793994970737.jpg': secondLifeLanternImg,
+  '/src/assets/images/stella_bottle_past_2025_1793998085152.jpg': pastEditionBottleImg,
+};
+
+export function normalizeSiteImageSrc(src: string | undefined, fallback: string): string {
+  if (!src || !src.trim()) return fallback;
+  return LEGACY_IMAGE_MAP[src.trim()] || src;
+}
 
 export const INITIAL_SETTINGS: AppSettings = {
   videoUrl: 'https://www.youtube.com/embed/fDqZ9w78QdY?si=xXv7Bqf483gq1y0d',

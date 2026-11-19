@@ -7,6 +7,8 @@ import {
   PAST_EDITION_2025,
   GAME_QUESTIONS,
   INITIAL_SECOND_LIFE_DATA,
+  DEFAULT_SITE_IMAGES,
+  normalizeSiteImageSrc,
 } from '../data/initialData';
 import { generateDefaultBottleToken } from './bottleTokens';
 
@@ -114,8 +116,13 @@ export const getStoredSettings = (): AppSettings => {
       ...INITIAL_SETTINGS,
       ...parsed,
       images: {
-        ...INITIAL_SETTINGS.images,
-        ...(parsed.images || {}),
+        heroBottle: normalizeSiteImageSrc(parsed.images?.heroBottle, DEFAULT_SITE_IMAGES.heroBottle),
+        ritualGlass: normalizeSiteImageSrc(parsed.images?.ritualGlass, DEFAULT_SITE_IMAGES.ritualGlass),
+        storyKitchen: normalizeSiteImageSrc(parsed.images?.storyKitchen, DEFAULT_SITE_IMAGES.storyKitchen),
+        secondLifeLantern: normalizeSiteImageSrc(
+          parsed.images?.secondLifeLantern,
+          DEFAULT_SITE_IMAGES.secondLifeLantern
+        ),
       },
     };
   } catch {
@@ -169,6 +176,7 @@ export const getStoredPastEdition = (): PastEdition => {
     return {
       ...PAST_EDITION_2025,
       ...parsed,
+      imageSrc: normalizeSiteImageSrc(parsed.imageSrc, DEFAULT_SITE_IMAGES.pastEditionBottle),
       keyFeatures: parsed.keyFeatures ?? PAST_EDITION_2025.keyFeatures,
     };
   } catch {

@@ -24,7 +24,7 @@ import {
   SiteImages,
   Wish,
 } from '../types';
-import { DEFAULT_SITE_IMAGES } from '../data/initialData';
+import { DEFAULT_SITE_IMAGES, normalizeSiteImageSrc } from '../data/initialData';
 
 export type SiteImageKey = keyof SiteImages | 'pastEditionBottle';
 
@@ -496,11 +496,22 @@ export function subscribeToFirestoreData(callbacks: FirestoreSyncCallbacks): Uns
           wishesDescription: (data.wishesDescription as string) ?? prev.wishesDescription,
           footerDescription: (data.footerDescription as string) ?? prev.footerDescription,
           images: {
-            heroBottle: (data.heroBottleUrl as string) || prev.images.heroBottle,
-            ritualGlass: (data.ritualGlassUrl as string) || prev.images.ritualGlass,
-            storyKitchen: (data.storyKitchenUrl as string) || prev.images.storyKitchen,
-            secondLifeLantern:
-              (data.secondLifeLanternUrl as string) || prev.images.secondLifeLantern,
+            heroBottle: normalizeSiteImageSrc(
+              data.heroBottleUrl as string,
+              prev.images.heroBottle
+            ),
+            ritualGlass: normalizeSiteImageSrc(
+              data.ritualGlassUrl as string,
+              prev.images.ritualGlass
+            ),
+            storyKitchen: normalizeSiteImageSrc(
+              data.storyKitchenUrl as string,
+              prev.images.storyKitchen
+            ),
+            secondLifeLantern: normalizeSiteImageSrc(
+              data.secondLifeLanternUrl as string,
+              prev.images.secondLifeLantern
+            ),
           },
         }));
       },
@@ -518,7 +529,10 @@ export function subscribeToFirestoreData(callbacks: FirestoreSyncCallbacks): Uns
         snap.forEach((docSnap) => {
           const data = docSnap.data() as { key?: SiteImageKey; dataUrl?: string };
           if (data.key && data.dataUrl) {
-            map[data.key] = data.dataUrl;
+            map[data.key] = normalizeSiteImageSrc(
+              data.dataUrl,
+              DEFAULT_SITE_IMAGES[data.key]
+            );
           }
         });
         callbacks.onSiteImages(map);
@@ -564,7 +578,7 @@ export function subscribeToFirestoreData(callbacks: FirestoreSyncCallbacks): Uns
           status: data.status,
           description: data.description,
           tastingNotes: data.tastingNotes || '',
-          imageSrc: data.imageSrc || prev.imageSrc,
+          imageSrc: normalizeSiteImageSrc(data.imageSrc, prev.imageSrc),
           waxSealColor: data.waxSealColor,
           keyFeatures: data.keyFeatures || [],
           archiveNote: data.archiveNote,
